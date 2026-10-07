@@ -8,9 +8,13 @@ An interactive visual exploration of the 1984 Macintosh 128K: an illustrated cut
 
 ## Explore
 
-- **Explore the machine:** open the enclosure, select parts, and inspect their roles and connections.
-- **Follow a signal:** step through startup, a mouse-driven drawing operation, or a disk read.
-- **Pixels to picture:** move and edit a magnified patch of a 512 × 342, one-bit screen, inspect its RAM addresses, and see how stored bytes become pixels.
+- **Meet the parts:** open the enclosure, select parts, and inspect concise specifications. Expand Architecture notes for roles, connections, and original references. The component rail tracks parts explored during the current page session.
+- **Follow a signal:** step through startup, a mouse-driven drawing operation, or a disk read beside the illustrated machine. Select a component to stop the story and inspect it.
+- **Make a picture:** work with the full 512 × 342 screen and a magnified editable patch in one view. Change pixels or their byte bits, inspect RAM addresses, and undo your experiments.
+
+Click the screen preview to move the magnifier; its arrow keys move the patch by eight pixels. In the magnified editor, arrow keys select one pixel and Space or Enter flips its bit. The eight byte buttons provide another way to edit. **Undo** restores up to 40 bitmap changes, including presets and resets; **Reset** restores the original desktop study. Manual patch coordinates accept X in multiples of eight and any valid whole Y.
+
+Signal stories support manual steps and Play/Pause. Playback stops when the page is hidden or the window loses focus; finished stories offer Restart and Replay.
 
 The hardware descriptions use Apple’s original documentation and Motorola’s processor manual. The illustrations and screen artwork are original. This is an explanatory model, not a Macintosh emulator: it does not run 68000 instructions, Apple ROMs, or system software.
 

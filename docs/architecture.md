@@ -4,11 +4,15 @@ Architecture Lab makes the original 1984 Macintosh physically understandable: se
 
 ## Three ways to explore
 
-**Explore the machine** presents an original illustrated cutaway. Opening the enclosure separates the visual layers; selecting a part explains its role and related components. Placement and proportions are schematic, with some small circuits grouped under larger components. The drawing is not a board-layout or servicing reference.
+**Explore the machine** presents an original illustrated cutaway. Opening the enclosure separates the visual layers; selecting a part displays its summary, specifications, and an action leading to a related experiment or story. Architecture notes expand to show its role, related components, and original reference. A session-only counter and component-rail markers track explicitly inspected parts; automatic story steps do not count as component visits. Placement and proportions are schematic, with some small circuits grouped under larger components. The drawing is not a board-layout or servicing reference.
 
-**Follow a signal** presents three narrated journeys: successful startup from a readable system disk, mouse input followed by a drawing operation, and a file read followed by a screen update. Each step highlights participating parts and explicitly chosen functional transfer paths. The sequence is a conceptual explanation; it does not run the ROM or simulate every interrupt, instruction, bus transfer, or wait state. Several highlighted components may work concurrently in real hardware.
+**Follow a signal** replaces the component inspector with three narrated journeys beside the machine: successful startup from a readable system disk, mouse input followed by a drawing operation, and a file read followed by a screen update. Each step highlights participating parts and explicitly chosen functional transfer paths. Back, Next, numbered steps, and Play/Pause control the explanation; the final stage offers Restart and Replay. Selecting a hardware component stops playback and returns to its Explore inspector. Playback also pauses when the page is hidden or its window loses focus. The sequence is a conceptual explanation; it does not run the ROM or simulate every interrupt, instruction, bus transfer, or wait state. Several highlighted components may work concurrently in real hardware.
 
-**Pixels to picture** is a working model of monochrome bitmap storage. Its editable 32 × 16 patch magnifies a movable portion of a full 512 × 342 image, starting at pixel (240, 160). The patch can move horizontally in eight-pixel steps from x = 0 to 480 and vertically from y = 0 to 326. Each change affects a bit in the shared RAM array and the corresponding displayed pixel. Presets are original artwork, not screenshots of a running Macintosh system.
+**Pixels to picture** replaces the cutaway with an integrated full-screen preview and editable 32 × 16 magnified patch, starting at pixel (240, 160). An outline on the preview shows which region is magnified. Clicking the preview moves that region without changing any bitmap data. The patch can move horizontally in eight-pixel steps from x = 0 to 480 and vertically from y = 0 to 326. Each pixel or byte edit affects a bit in the shared RAM array and the corresponding displayed pixel. Presets are original artwork, not screenshots of a running Macintosh system.
+
+The screen preview's arrow keys move the region by eight pixels. In the magnified editor, arrow keys select one pixel; Space or Enter toggles it. The eight byte buttons toggle individual bits while preserving keyboard focus. Coordinate fields provide precise positioning, with validation for whole values and the required horizontal alignment. These keyboard controls apply when the relevant canvas has focus.
+
+Undo keeps the last 40 bitmap changes in memory, including pixel edits, byte edits, preset changes, and resets. It restores both the bitmap and the editing region associated with that change. Moving the magnifier alone does not add an undo entry. Reset restores the desktop study and can itself be undone when it changes the bitmap. The page does not save edits or exploration progress across reloads.
 
 ## Hardware baseline
 
@@ -73,6 +77,8 @@ The real hardware interleaves CPU and display access to RAM. This demo does not 
 - `scripts/` provides the local server and static build.
 
 Run `npm test` for the model checks and `npm run build` for the deployable files. Browser inspection is also needed to verify selection, playback, resizing, and the visible result of pixel edits. No 68000 execution, ROM boot, or operating-system compatibility is claimed by these checks.
+
+[Interface refinement notes](design-refinement.md) record the focused usability changes and the checks available at that review checkpoint.
 
 ## Primary references
 

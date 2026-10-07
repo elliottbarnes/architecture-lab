@@ -11,7 +11,7 @@ function dip(x, z, w, d, label, pinCount = 7) {
     pins += `<path d="M${p(px,z-4).join(' ')} L${p(px,z+2,4).join(' ')} M${p(px,z+d+4).join(' ')} L${p(px,z+d-2,4).join(' ')}"/>`;
   }
   const [tx,ty]=p(x+w/2,z+d/2,6);
-  return `<g class="dip-package"><g class="chip-pins">${pins}</g><polygon points="${boardRect(x,z,w,d)}" fill="#111b19"/><polygon class="part-highlight" points="${boardRect(x,z,w,d,5)}" fill="url(#chip-top)" stroke="#6a7469" stroke-width=".65"/><path d="M${p(x+2,z+3,6).join(' ')} L${p(x+w-2,z+3,6).join(' ')}" stroke="#586057" stroke-width=".7"/><circle cx="${p(x+4,z+d-4,6)[0]}" cy="${p(x+4,z+d-4,6)[1]}" r="1.25" fill="#a7b49a"/>${label?`<text x="${tx}" y="${ty+2}" text-anchor="middle" transform="rotate(4.2 ${tx} ${ty})" class="chip-lettering">${label}</text>`:''}</g>`;
+  return `<g class="dip-package"><g class="chip-pins">${pins}</g><polygon points="${boardRect(x,z,w,d)}" fill="#111b19"/><polygon class="part-highlight" points="${boardRect(x,z,w,d,5)}" fill="url(#chip-top)" stroke="#6a7469" stroke-width=".65"/><path d="M${p(x+2,z+3,6).join(' ')} L${p(x+w-2,z+3,6).join(' ')}" stroke="#586057" stroke-width=".7"/><circle cx="${p(x+4,z+d-4,6)[0]}" cy="${p(x+4,z+d-4,6)[1]}" r="1.25" fill="#a7b49a"/>${label?`<text x="${tx}" y="${ty+2}" text-anchor="middle" transform="rotate(4.2 ${tx} ${ty})" class="chip-lettering" aria-hidden="true">${label}</text>`:''}</g>`;
 }
 
 function logicBoard() {
@@ -23,7 +23,7 @@ function logicBoard() {
   for(let row=0;row<2;row++) for(let col=0;col<8;col++) memory+=dip(12+col*22,87+row*37,15,23,'',4);
   const screw=(x,z)=>{const [cx,cy]=p(x,z,2);return `<ellipse cx="${cx}" cy="${cy}" rx="4" ry="2.5" fill="#baa66d" stroke="#182f23"/><path d="M${cx-2} ${cy-.6} l4 1.2" stroke="#4c4b34"/>`;};
   return `<g class="mac-logic"><polygon points="${pts([p(0,0),p(236,0),p(236,185),p(0,185)])}" fill="#24553b" stroke="#71986c" stroke-width="1.3"/><path d="M${p(0,0).join(' ')} L${p(236,0).join(' ')} L${p(236,185).join(' ')} l0 5 L${p(236,0, -5).join(' ')} L${p(0,0,-5).join(' ')} Z" fill="#183c2d"/><g class="pcb-traces">${traces}<path d="M${p(8,179).join(' ')} L${p(215,179).join(' ')} L${p(215,12).join(' ')} M${p(6,176).join(' ')} L${p(6,48).join(' ')} L${p(124,48).join(' ')}"/></g>
-    <text x="${p(8,166)[0]}" y="${p(8,166)[1]}" transform="rotate(4.2 ${p(8,166).join(' ')})" class="board-lettering">MACINTOSH · LOGIC BOARD</text>
+    <text x="${p(8,166)[0]}" y="${p(8,166)[1]}" transform="rotate(4.2 ${p(8,166).join(' ')})" class="board-lettering" aria-hidden="true">MACINTOSH · LOGIC BOARD</text>
     ${part('cpu','Motorola 68000 processor, the Macintosh central processing unit',dip(16,28,100,29,'MC68000',15))}
     ${part('ram','128 kilobytes of RAM, sixteen dynamic memory chips',memory)}
     ${part('rom','64 kilobytes of ROM, two chips containing system routines',dip(156,17,24,44,'ROM',5)+dip(190,17,24,44,'ROM',5))}
@@ -41,15 +41,15 @@ function keyboard() {
   const kr=(x,z,w,d,h=0)=>pts([k(x,z,h),k(x+w,z,h),k(x+w,z+d,h),k(x,z+d,h)]);
   const keys=[];
   const rows=[['Z','X','C','V','B','N','M',',','.','/'],['A','S','D','F','G','H','J','K','L',';'],['Q','W','E','R','T','Y','U','I','O','P'],['1','2','3','4','5','6','7','8','9','0','−','=']];
-  function key(x,z,w,label) { const [tx,ty]=k(x+w/2,z+9,4);return `<g><polygon points="${kr(x,z,w,18)}" fill="#9e9783"/><polygon points="${kr(x,z,w,18,4)}" fill="url(#key-top)" stroke="#b6ad95" stroke-width=".65"/>${label?`<text x="${tx}" y="${ty+1.5}" transform="rotate(4.2 ${tx} ${ty})" class="key-lettering" text-anchor="middle">${label}</text>`:''}</g>`; }
+  function key(x,z,w,label) { const [tx,ty]=k(x+w/2,z+9,4);return `<g><polygon points="${kr(x,z,w,18)}" fill="#9e9783"/><polygon points="${kr(x,z,w,18,4)}" fill="url(#key-top)" stroke="#b6ad95" stroke-width=".65"/>${label?`<text x="${tx}" y="${ty+1.5}" transform="rotate(4.2 ${tx} ${ty})" class="key-lettering" text-anchor="middle" aria-hidden="true">${label}</text>`:''}</g>`; }
   rows.forEach((row,r)=>row.forEach((letter,c)=>keys.push(key(34+c*20+(r<3?(3-r)*3:0),35+r*23,17,letter))));
   keys.push(key(18,35,25,'shift'),key(253,35,37,'shift'),key(17,58,19,'lock'),key(247,58,43,'return'),key(15,81,24,'tab'),key(250,81,40,'['),key(16,104,15,'`'),key(277,104,16,'⌫'),key(25,10,31,'⌘'),key(61,10,183,''),key(251,10,34,'enter'));
   return part('keyboard','Original Macintosh keyboard, connected by a coiled cable',`<path class="peripheral-cable" d="M352 519 C400 501 271 483 287 461 C296 449 338 459 350 449"/><path class="cable-coil" d="M350 491 c-8-3-7-11 0-11 c8 0 8 9 0 10 c-8 0-8-10 1-10 c8 0 9 10 1 11 c-8 0-8-9 0-10"/><polygon points="${pts([k(0,0),k(310,0),k(310,148),k(0,148)])}" fill="url(#keyboard-top)" stroke="#c7bea7" stroke-width="1.5"/><path d="M${k(0,0).join(' ')} L${k(310,0).join(' ')} L${k(310,148).join(' ')} l0 13 L${k(310,0,-13).join(' ')} L${k(0,0,-13).join(' ')} Z" fill="#98917d" stroke="#8b8471"/><polygon class="part-highlight" points="${kr(9,5,292,132)}" fill="none" stroke="#b2a990" stroke-width="1"/><polygon points="${kr(13,8,284,122)}" fill="#b8af97"/>${keys.join('')}<path d="M${k(6,1,-3).join(' ')} L${k(303,1,-3).join(' ')}" stroke="#d8cdb5" opacity=".6"/>`,'mac-keyboard');
 }
 
-function label(text,x,y,path,extra='') {
-  const width=text.length*5.85+18;
-  return `<g class="part-label ${extra}"><path d="${path}"/><rect x="${x}" y="${y-15}" width="${width}" height="24" rx="5"/><text x="${x+9}" y="${y+1}">${text}</text></g>`;
+function label(id,text,x,y,path,extra='') {
+  const width=text.length*6.45+32;
+  return `<g class="part-label ${extra}"><path class="label-leader" d="${path}" aria-hidden="true"/><g class="mac-part part-label-button" data-part="${id}" role="button" tabindex="0" aria-label="Explore ${text.toLowerCase()}"><rect class="label-plate part-highlight" x="${x}" y="${y-18}" width="${width}" height="30" rx="7"/><circle class="label-dot" cx="${x+11}" cy="${y-3}" r="3" aria-hidden="true"/><text x="${x+22}" y="${y+1}" aria-hidden="true">${text}</text></g></g>`;
 }
 
 export function macintoshScene() {
@@ -127,20 +127,20 @@ export function macintoshScene() {
     ${part('display','Macintosh display opening and front bezel',`<path class="part-highlight" d="M28 29H246Q254 29 254 39V189Q254 198 244 198H30Q20 198 20 188V40Q20 29 28 29Z M32 42H243V183H32Z" fill-rule="evenodd" fill="#a69c83" stroke="#c3b798"/><path d="M35 34H240Q250 34 250 44V182Q250 192 240 192H35Q25 192 25 182V44Q25 34 35 34Z M32 42H243V183H32Z" fill-rule="evenodd" fill="#29352f"/><g class="front-screen"><rect x="32" y="42" width="211" height="141" rx="6" fill="#b5c5af"/><foreignObject x="32" y="42" width="211" height="141"><canvas xmlns="http://www.w3.org/1999/xhtml" id="mac-screen" class="mac-screen-canvas" width="512" height="342" aria-label="Live monochrome Macintosh screen when assembled"></canvas></foreignObject><path d="M35 39H241" stroke="#eeeeda" opacity=".25"/></g>`)}
     ${part('floppy','Front slot of the 3.5-inch floppy disk drive',`<path class="part-highlight" d="M62 237H235V253H62Z" fill="#b2a68a" stroke="#e0d3b5"/><path d="M62 239H235V247H62Z" fill="#232b25"/><path d="M178 243H231" stroke="#758276" stroke-width="1.2"/><rect x="236" y="257" width="3" height="3" rx="1.5" fill="#716b58"/>`)}
     <g class="rainbow-badge" aria-hidden="true">${['#68a968','#e4ce65','#dba050','#cc7053','#b36e92','#6893aa'].map((color,i)=>`<rect x="23" y="278" width="3" height="16" fill="${color}" transform="translate(${i*3} 0)"/>`).join('')}</g>
-    <text x="47" y="288" fill="#625e50" font-family="Georgia,serif" font-size="10">Macintosh</text><text x="25" y="307" fill="#897e64" font-family="monospace" font-size="5.5" letter-spacing="1.5">128K · 1984</text>
+    <text x="47" y="288" fill="#625e50" font-family="Georgia,serif" font-size="10" aria-hidden="true">Macintosh</text><text x="25" y="307" fill="#897e64" font-family="monospace" font-size="5.5" letter-spacing="1.5" aria-hidden="true">128K · 1984</text>
     <path d="M20 332V338H51V332M221 332V338H251V332" fill="#817964"/>
   </g></g>
   ${keyboard()}
   ${part('mouse','Original Macintosh single-button mouse',`<path class="peripheral-cable" d="M679 552C699 526 700 489 652 486C610 483 590 532 551 515C505 495 527 451 511 440"/><path d="M645 562Q644 551 655 545L679 532Q688 527 699 532L723 547Q731 552 729 566L724 600Q722 610 712 615L690 626Q680 631 670 624L649 610Q642 605 643 594Z" fill="#938b75" stroke="#c6b99a"/><path class="part-highlight" d="M645 558Q645 549 655 543L679 530Q689 525 699 531L724 546Q731 550 729 560L724 590Q722 601 713 606L688 619Q679 624 669 617L650 604Q643 600 644 589Z" fill="url(#case-front)" stroke="#e1d4b4" stroke-width="1.2"/><path d="M652 548L680 534Q687 531 694 535L718 549L712 576L678 593L650 577Z" fill="#c5b99a" stroke="#8b846d" stroke-width="1"/><path d="M653 550L680 537Q687 534 693 538L714 550" fill="none" stroke="#e9dec3"/><path d="M651 604L673 618" stroke="#afa187"/>`,'mac-mouse')}
-  <g class="part-labels" aria-hidden="true">
-    ${label('9-INCH CRT',323,64,'M382 75V103L451 122','internal-label')}
-    ${label('ANALOG / POWER',721,171,'M716 166H700L660 230','internal-label')}
-    ${label('400K FLOPPY',713,306,'M706 300H669L599 351','internal-label')}
-    ${label('128K RAM',714,417,'M709 412H674L494 448','internal-label')}
-    ${label('68000 CPU',208,500,'M290 485L385 458','internal-label')}
-    ${label('64K ROM',539,535,'M574 515V494L549 467','internal-label')}
-    ${label('KEYBOARD',169,647,'M225 629L277 602')}
-    ${label('ONE-BUTTON MOUSE',655,655,'M701 634L697 621')}
+  <g class="part-labels">
+    ${label('display','9-INCH CRT',323,64,'M382 75V103L451 122','internal-label')}
+    ${label('analog','ANALOG / POWER',721,171,'M716 166H700L660 230','internal-label')}
+    ${label('floppy','400K FLOPPY',713,306,'M706 300H669L599 351','internal-label')}
+    ${label('ram','128K RAM',714,417,'M709 412H674L494 448','internal-label')}
+    ${label('cpu','68000 CPU',208,500,'M290 485L385 458','internal-label')}
+    ${label('rom','64K ROM',539,535,'M574 515L549 467','internal-label')}
+    ${label('keyboard','KEYBOARD',169,647,'M225 629L277 602')}
+    ${label('mouse','ONE-BUTTON MOUSE',655,655,'M701 634L697 621')}
   </g>
   <g class="scene-caption" aria-hidden="true"><text x="39" y="39">MACINTOSH 128K</text><text x="39" y="58">APPLE COMPUTER · 1984</text><text x="39" y="670">ILLUSTRATED CUTAWAY · COMPONENT PLACEMENT SIMPLIFIED</text></g>
   </svg>`;

@@ -1,8 +1,9 @@
 /* Original vector Macintosh. Transforms act on wrappers, never projected geometry. */
-.macintosh-scene{display:block;width:100%;height:auto;overflow:visible;isolation:isolate;--scene-accent:#edbf6a;--scene-line:#879784;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.macintosh-scene{display:block;width:100%;height:auto;overflow:visible;isolation:isolate;--scene-accent:#a45bb1;--scene-blue:#3397c7;--scene-ink:#242424;--scene-line:#777263;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.macintosh-scene .scene-ground{opacity:.32}
 .macintosh-scene .mac-shell,.macintosh-scene .mac-front,.macintosh-scene .mac-crt,.macintosh-scene .mac-analog,.macintosh-scene .mac-drive,.macintosh-scene .mac-logic{transition:transform .8s cubic-bezier(.22,.7,.24,1),opacity .65s ease;transform-box:view-box;transform-origin:450px 345px}
 .macintosh-scene .mac-crt,.macintosh-scene .mac-analog,.macintosh-scene .mac-drive,.macintosh-scene .mac-logic{opacity:0;visibility:hidden;pointer-events:none}
-.is-open .macintosh-scene .mac-shell,.macintosh-scene.is-open .mac-shell{transform:translate(77px,-27px);opacity:.22}
+.is-open .macintosh-scene .mac-shell,.macintosh-scene.is-open .mac-shell{transform:translate(77px,-27px);opacity:.32}
 .is-open .macintosh-scene .mac-front,.macintosh-scene.is-open .mac-front{transform:translate(-150px,35px)}
 .is-open .macintosh-scene .mac-crt,.macintosh-scene.is-open .mac-crt{transform:translate(59px,-50px);opacity:1;visibility:visible;pointer-events:auto}
 .is-open .macintosh-scene .mac-analog,.macintosh-scene.is-open .mac-analog{transform:translate(65px,-5px);opacity:1;visibility:visible;pointer-events:auto}
@@ -10,11 +11,14 @@
 .is-open .macintosh-scene .mac-logic,.macintosh-scene.is-open .mac-logic{transform:translate(42px,58px);opacity:1;visibility:visible;pointer-events:auto}
 .is-open .macintosh-scene .front-screen,.macintosh-scene.is-open .front-screen{display:none}
 .macintosh-scene .mac-part{cursor:pointer;outline:none}
-.macintosh-scene .part-highlight{transition:stroke .18s,filter .18s,stroke-width .18s}
-.macintosh-scene .mac-part:hover .part-highlight,.macintosh-scene .mac-part:focus-visible .part-highlight{stroke:#f1deaf;stroke-width:2.2;filter:drop-shadow(0 0 5px #edbf6a55)}
-.macintosh-scene .mac-part.selected .part-highlight{stroke:var(--scene-accent);stroke-width:2.5;filter:drop-shadow(0 0 8px #edbf6a55)}
-.macintosh-scene .mac-part.path-active .part-highlight{stroke:#aee3bd;stroke-width:2.6;filter:drop-shadow(0 0 10px #9ee6b76b)}
-.macintosh-scene .mac-part.path-active .peripheral-cable{stroke:#aee3bd;filter:drop-shadow(0 0 5px #9ee6b76b)}
+.macintosh-scene .part-highlight{transition:stroke .18s,filter .18s,stroke-width .18s;vector-effect:non-scaling-stroke}
+.macintosh-scene .mac-part:hover .part-highlight{stroke:var(--scene-blue);stroke-width:2.8;filter:drop-shadow(0 0 5px #3397c755)}
+.macintosh-scene .mac-part.selected .part-highlight{stroke:var(--scene-accent);stroke-width:3;filter:drop-shadow(0 0 6px #a45bb155)}
+.macintosh-scene .mac-part.path-active .part-highlight{stroke:var(--scene-blue);stroke-width:3.2;filter:drop-shadow(0 0 7px #3397c770)}
+.macintosh-scene .mac-part.path-active .peripheral-cable{stroke:var(--scene-blue);filter:drop-shadow(0 0 4px #3397c755)}
+.macintosh-scene .mac-part:focus-visible .part-highlight{stroke:#703488;stroke-width:3.5;stroke-dasharray:5 2;filter:drop-shadow(0 0 2px #fff8ed) drop-shadow(0 0 7px #a45bb180)}
+.macintosh-scene .signal-overlay>path{stroke:var(--scene-blue)}
+.macintosh-scene .signal-overlay marker path{fill:var(--scene-blue)}
 .macintosh-scene .pcb-traces{fill:none;stroke:#a6b778;stroke-width:.8;opacity:.48}
 .macintosh-scene .chip-pins{fill:none;stroke:#b6b99e;stroke-width:1.25}
 .macintosh-scene .chip-lettering{fill:#c0c7a8;font-size:5.8px;letter-spacing:.25px;pointer-events:none}
@@ -23,15 +27,27 @@
 .macintosh-scene .peripheral-cable{fill:none;stroke:#8f9a84;stroke-width:4.2;stroke-linecap:round}
 .macintosh-scene .cable-coil{fill:none;stroke:#626f5d;stroke-width:2.2}
 .macintosh-scene .mac-screen-canvas{display:block;width:100%;height:100%;background:#bdcbb5;image-rendering:pixelated;border-radius:4px}
-.macintosh-scene .assembly-guides{fill:none;stroke:#758d795e;stroke-width:1;stroke-dasharray:4 6;opacity:0;transition:opacity .6s;pointer-events:none}
+.macintosh-scene .assembly-guides{fill:none;stroke:#91867680;stroke-width:1;stroke-dasharray:4 6;opacity:0;transition:opacity .6s;pointer-events:none}
 .is-open .macintosh-scene .assembly-guides,.macintosh-scene.is-open .assembly-guides{opacity:1}
-.macintosh-scene .part-labels{pointer-events:none}
-.macintosh-scene .part-label path{fill:none;stroke:#83977c;stroke-width:1;opacity:.65}
-.macintosh-scene .part-label rect{fill:#19241fcc;stroke:#70806e70;stroke-width:.7}
-.macintosh-scene .part-label text{fill:#c6cfb8;font-size:9px;letter-spacing:.5px}
-.macintosh-scene .internal-label{opacity:0;transition:opacity .5s}
-.is-open .macintosh-scene .internal-label,.macintosh-scene.is-open .internal-label{opacity:1;transition-delay:.3s}
-.macintosh-scene .scene-caption text{fill:#8c9a86;font-size:8px;letter-spacing:1.6px;pointer-events:none}
-.macintosh-scene .scene-caption text:first-child{fill:#cbd3bf;font-size:11px;letter-spacing:2px}
+.macintosh-scene .part-labels,.macintosh-scene .part-label{pointer-events:none}
+.macintosh-scene .part-label .label-leader{fill:none;stroke:var(--scene-line);stroke-width:1.2;opacity:.8;vector-effect:non-scaling-stroke}
+.macintosh-scene .part-label .label-plate{fill:#fffaf0;stroke:#c9bda8;stroke-width:1;pointer-events:all;filter:drop-shadow(0 2px 2px #66513515)}
+.macintosh-scene .part-label text{fill:var(--scene-ink);font-size:10px;font-weight:600;letter-spacing:.2px;pointer-events:none}
+.macintosh-scene .label-dot{fill:var(--scene-blue);pointer-events:none}
+.macintosh-scene [data-part="cpu"] .label-dot{fill:#df534a}
+.macintosh-scene [data-part="ram"] .label-dot{fill:#ee853a}
+.macintosh-scene [data-part="rom"] .label-dot{fill:#f4c541}
+.macintosh-scene [data-part="floppy"] .label-dot{fill:#61b64c}
+.macintosh-scene [data-part="analog"] .label-dot,.macintosh-scene [data-part="mouse"] .label-dot{fill:#a45bb1}
+.macintosh-scene .part-label-button:hover .label-plate{fill:#eff8fc;stroke:var(--scene-blue);stroke-width:1.8}
+.macintosh-scene .part-label-button.selected .label-plate{fill:#f6ebf8;stroke:var(--scene-accent);stroke-width:2}
+.macintosh-scene .part-label-button.path-active .label-plate{fill:#e8f5fc;stroke:var(--scene-blue);stroke-width:2}
+.macintosh-scene .part-label-button:focus-visible .label-plate{stroke:#703488;stroke-width:2.5;stroke-dasharray:4 2}
+.macintosh-scene .internal-label{opacity:0;visibility:hidden;transition:opacity .5s}
+.is-open .macintosh-scene .internal-label,.macintosh-scene.is-open .internal-label{opacity:1;visibility:visible;transition-delay:.3s}
+.hide-labels .macintosh-scene .part-labels .part-label{visibility:hidden;pointer-events:none}
+.hide-labels .macintosh-scene .part-labels .label-plate{pointer-events:none}
+.macintosh-scene .scene-caption text{fill:#756e60;font-size:8px;letter-spacing:1.6px;pointer-events:none}
+.macintosh-scene .scene-caption text:first-child{fill:var(--scene-ink);font-size:11px;letter-spacing:2px}
 .macintosh-scene .scene-caption text:last-child{font-size:6.6px;letter-spacing:1px}
 @media(prefers-reduced-motion:reduce){.macintosh-scene *{transition:none!important;animation:none!important}}
