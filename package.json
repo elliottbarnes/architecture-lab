@@ -1,0 +1,10 @@
+{
+  "name": "architecture-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Inside the original Macintosh: a visual hardware cutaway, signal journeys, and an editable monochrome framebuffer.",
+  "scripts": {"test": "node --test tests/*.test.js", "build": "node scripts/build.mjs", "dev": "node scripts/serve.mjs"},
+  "engines": {"node": ">=22"},
+  "license": "MIT"
+}

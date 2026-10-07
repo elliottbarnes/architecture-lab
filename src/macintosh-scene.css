@@ -1,0 +1,37 @@
+/* Original vector Macintosh. Transforms act on wrappers, never projected geometry. */
+.macintosh-scene{display:block;width:100%;height:auto;overflow:visible;isolation:isolate;--scene-accent:#edbf6a;--scene-line:#879784;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.macintosh-scene .mac-shell,.macintosh-scene .mac-front,.macintosh-scene .mac-crt,.macintosh-scene .mac-analog,.macintosh-scene .mac-drive,.macintosh-scene .mac-logic{transition:transform .8s cubic-bezier(.22,.7,.24,1),opacity .65s ease;transform-box:view-box;transform-origin:450px 345px}
+.macintosh-scene .mac-crt,.macintosh-scene .mac-analog,.macintosh-scene .mac-drive,.macintosh-scene .mac-logic{opacity:0;visibility:hidden;pointer-events:none}
+.is-open .macintosh-scene .mac-shell,.macintosh-scene.is-open .mac-shell{transform:translate(77px,-27px);opacity:.22}
+.is-open .macintosh-scene .mac-front,.macintosh-scene.is-open .mac-front{transform:translate(-150px,35px)}
+.is-open .macintosh-scene .mac-crt,.macintosh-scene.is-open .mac-crt{transform:translate(59px,-50px);opacity:1;visibility:visible;pointer-events:auto}
+.is-open .macintosh-scene .mac-analog,.macintosh-scene.is-open .mac-analog{transform:translate(65px,-5px);opacity:1;visibility:visible;pointer-events:auto}
+.is-open .macintosh-scene .mac-drive,.macintosh-scene.is-open .mac-drive{transform:translate(63px,13px);opacity:1;visibility:visible;pointer-events:auto}
+.is-open .macintosh-scene .mac-logic,.macintosh-scene.is-open .mac-logic{transform:translate(42px,58px);opacity:1;visibility:visible;pointer-events:auto}
+.is-open .macintosh-scene .front-screen,.macintosh-scene.is-open .front-screen{display:none}
+.macintosh-scene .mac-part{cursor:pointer;outline:none}
+.macintosh-scene .part-highlight{transition:stroke .18s,filter .18s,stroke-width .18s}
+.macintosh-scene .mac-part:hover .part-highlight,.macintosh-scene .mac-part:focus-visible .part-highlight{stroke:#f1deaf;stroke-width:2.2;filter:drop-shadow(0 0 5px #edbf6a55)}
+.macintosh-scene .mac-part.selected .part-highlight{stroke:var(--scene-accent);stroke-width:2.5;filter:drop-shadow(0 0 8px #edbf6a55)}
+.macintosh-scene .mac-part.path-active .part-highlight{stroke:#aee3bd;stroke-width:2.6;filter:drop-shadow(0 0 10px #9ee6b76b)}
+.macintosh-scene .mac-part.path-active .peripheral-cable{stroke:#aee3bd;filter:drop-shadow(0 0 5px #9ee6b76b)}
+.macintosh-scene .pcb-traces{fill:none;stroke:#a6b778;stroke-width:.8;opacity:.48}
+.macintosh-scene .chip-pins{fill:none;stroke:#b6b99e;stroke-width:1.25}
+.macintosh-scene .chip-lettering{fill:#c0c7a8;font-size:5.8px;letter-spacing:.25px;pointer-events:none}
+.macintosh-scene .board-lettering{fill:#bac69b;font-size:4.5px;letter-spacing:1px;opacity:.8;pointer-events:none}
+.macintosh-scene .key-lettering{fill:#6a6353;font-size:5.8px;pointer-events:none}
+.macintosh-scene .peripheral-cable{fill:none;stroke:#8f9a84;stroke-width:4.2;stroke-linecap:round}
+.macintosh-scene .cable-coil{fill:none;stroke:#626f5d;stroke-width:2.2}
+.macintosh-scene .mac-screen-canvas{display:block;width:100%;height:100%;background:#bdcbb5;image-rendering:pixelated;border-radius:4px}
+.macintosh-scene .assembly-guides{fill:none;stroke:#758d795e;stroke-width:1;stroke-dasharray:4 6;opacity:0;transition:opacity .6s;pointer-events:none}
+.is-open .macintosh-scene .assembly-guides,.macintosh-scene.is-open .assembly-guides{opacity:1}
+.macintosh-scene .part-labels{pointer-events:none}
+.macintosh-scene .part-label path{fill:none;stroke:#83977c;stroke-width:1;opacity:.65}
+.macintosh-scene .part-label rect{fill:#19241fcc;stroke:#70806e70;stroke-width:.7}
+.macintosh-scene .part-label text{fill:#c6cfb8;font-size:9px;letter-spacing:.5px}
+.macintosh-scene .internal-label{opacity:0;transition:opacity .5s}
+.is-open .macintosh-scene .internal-label,.macintosh-scene.is-open .internal-label{opacity:1;transition-delay:.3s}
+.macintosh-scene .scene-caption text{fill:#8c9a86;font-size:8px;letter-spacing:1.6px;pointer-events:none}
+.macintosh-scene .scene-caption text:first-child{fill:#cbd3bf;font-size:11px;letter-spacing:2px}
+.macintosh-scene .scene-caption text:last-child{font-size:6.6px;letter-spacing:1px}
+@media(prefers-reduced-motion:reduce){.macintosh-scene *{transition:none!important;animation:none!important}}
