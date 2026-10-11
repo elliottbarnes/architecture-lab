@@ -1,5 +1,6 @@
-import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
@@ -27,6 +28,16 @@ export async function buildSite() {
   });
   const externalImports = Object.values(result.metafile.outputs).flatMap(output => output.imports).filter(item => item.external);
   if (externalImports.length) throw new Error(`The browser bundle still requires external imports: ${externalImports.map(item => item.path).join(', ')}`);
+  // Pages caches files independently. Version entry assets so a new HTML page
+  // cannot boot with the previous JavaScript or styles still in a browser cache.
+  let html = await readFile(new URL('index.html', out), 'utf8');
+  const references = [...new Set([...html.matchAll(/(?:src|href)="(\.\/(?:src\/[^"]+|favicon\.svg))"/g)].map(match => match[1]))];
+  for (const reference of references) {
+    const bytes = await readFile(new URL(reference, out));
+    const version = createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+    html = html.replaceAll(`"${reference}"`, `"${reference}?v=${version}"`);
+  }
+  await writeFile(new URL('index.html', out), html);
   await writeFile(new URL('.nojekyll', out), '');
   console.log('Built static site in dist/ (browser dependencies bundled locally).');
   return result;
