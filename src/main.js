@@ -1,16 +1,24 @@
 import { macintoshScene } from './macintosh-scene.js';
-import { PARTS, JOURNEYS } from './macintosh-data.js';
+import { createMacintoshRenderer } from './macintosh-renderer.js';
+import { initMachineActivities } from './machine-activities.js';
+import { GENERATIONS } from './machine-generations.js';
 import { WIDTH, HEIGHT, FRAME_BYTES, getPixel, togglePixel, byteLocation, fillPattern, drawFramebuffer } from './framebuffer.js';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 const hex = (value, width = 4) => value.toString(16).toUpperCase().padStart(width, '0');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const initialHash = location.hash.slice(1).split('/');
+let generation = GENERATIONS.find(item => item.id === initialHash[0]) || GENERATIONS[0];
+let PARTS = generation.parts, JOURNEYS = generation.journeys;
+const presentationScreen = document.createElement('canvas');
 const visited = new Set();
 const edits = [];
 const HISTORY_LIMIT = 40;
-let selected = PARTS.some(part => part.id === location.hash.slice(1)) ? location.hash.slice(1) : 'cpu';
-let mode = 'explore', isOpen = true, screenOn = true;
+let selected = PARTS.some(part => part.id === initialHash.at(-1)) ? initialHash.at(-1) : 'display';
+let mode = 'explore', isOpen = false, screenOn = true;
+let machine3D = null, machineActivities = null;
+let cursor = { visible: false, x: 256, y: 171, pressed: false };
 let journey = JOURNEYS[0], step = 0, timer = null;
 let patchX = 240, patchY = 160, pixelX = 0, pixelY = 0, currentPattern = 'desktop';
 let openTimer, resizeTimer;
@@ -20,8 +28,11 @@ const frame = ram.subarray(screenBase, screenBase + FRAME_BYTES);
 fillPattern(frame, 'desktop');
 
 $('mac-scene').innerHTML = macintoshScene();
+function populateParts() {
 $('part-select').innerHTML = PARTS.map(part => `<option value="${part.id}">${escapeHTML(part.title)}</option>`).join('');
 $('component-rail').innerHTML = PARTS.map((part, index) => `<button type="button" data-select="${part.id}" data-visited="false" aria-pressed="false"><span>${String(index + 1).padStart(2, '0')}</span>${escapeHTML(part.title)}</button>`).join('');
+}
+populateParts();
 const customOption = document.createElement('option');
 customOption.value = 'custom'; customOption.textContent = 'Custom edits'; customOption.disabled = true;
 $('screen-pattern').append(customOption);
@@ -49,6 +60,12 @@ function updateProgress() {
   });
 }
 function partAction(part) {
+  if (generation.id !== 'macintosh') {
+    if (generation.id === 'imac-g3' && part.id === 'storage') return {label:'Follow a file read →',journey:'picture'};
+    if (['keyboard','mouse','storage','optical'].includes(part.id)) return {label:'Try this hardware →',activity: ['storage','optical'].includes(part.id) ? 'disk' : part.id};
+    return {label:'Trace the architecture →',journey:JOURNEYS[0].id};
+  }
+  if (['keyboard', 'mouse', 'floppy'].includes(part.id)) return { label: {keyboard:'Type on this Macintosh →',mouse:'Move the mouse →',floppy:'Insert a disk →'}[part.id], activity: part.id === 'floppy' ? 'disk' : part.id };
   if (['ram', 'display', 'sound'].includes(part.id)) return { label: 'Turn memory into pixels →', pixels: true };
   if (['mouse', 'scc', 'via', 'keyboard'].includes(part.id)) return { label: 'Follow mouse input →', journey: 'mouse' };
   if (['floppy', 'iwm'].includes(part.id)) return { label: 'Follow a disk read →', journey: 'disk' };
@@ -64,6 +81,7 @@ function selectPart(id, { updateHash = true, markVisited = true } = {}) {
     element.classList.toggle('selected', element.dataset.part === id);
     element.setAttribute('aria-pressed', String(element.dataset.part === id));
   });
+  machine3D?.select(id);
   updateProgress();
   $('part-select').value = id;
   $('part-position').textContent = `${String(PARTS.indexOf(part) + 1).padStart(2, '0')} / ${PARTS.length}`;
@@ -71,7 +89,10 @@ function selectPart(id, { updateHash = true, markVisited = true } = {}) {
   $('part-detail').innerHTML = `<p class="eyebrow accent part-category">${escapeHTML(part.category)}</p><h2>${escapeHTML(part.title)}</h2><p class="part-subtitle">${escapeHTML(part.subtitle)}</p><p class="part-summary">${escapeHTML(part.summary)}</p><dl class="part-specs">${part.specs.map(spec => `<div><dt>${escapeHTML(spec.label)}</dt><dd>${escapeHTML(spec.value)}</dd></div>`).join('')}</dl><button type="button" class="button primary part-action" id="part-action">${escapeHTML(action.label)}</button><details class="architecture-details"><summary>Architecture notes</summary><p class="part-role">${escapeHTML(part.role)}</p><div class="part-fact"><span class="eyebrow">Look a little closer</span><p>${escapeHTML(part.fact)}</p></div><h3 class="connections-title">Connected to</h3><div class="connections">${part.connections.map(connection => `<button type="button" data-connect="${connection}">${escapeHTML(PARTS.find(candidate => candidate.id === connection)?.title || connection)} <span>↗</span></button>`).join('')}</div><a class="source-link" href="${escapeHTML(part.source)}" target="_blank" rel="noopener">Original technical reference ↗</a></details>`;
   $('part-detail').querySelectorAll('[data-connect]').forEach(button => button.addEventListener('click', () => activatePart(button.dataset.connect)));
   $('part-action').addEventListener('click', () => {
-    if (action.pixels) {
+    if (action.activity) {
+      setMode('operate');
+      machineActivities?.activate(action.activity, { focus: true });
+    } else if (action.pixels) {
       setMode('pixels');
       ($('screen-preview') || $('pixel-editor')).focus({ preventScroll: true });
     } else {
@@ -80,7 +101,7 @@ function selectPart(id, { updateHash = true, markVisited = true } = {}) {
     }
     showExhibit();
   });
-  if (updateHash) history.replaceState(null, '', '#' + id);
+  if (updateHash) history.replaceState(null, '', '#' + (generation.id === 'macintosh' ? '' : generation.id + '/') + id);
 }
 function activatePart(id, options) {
   // A deliberate component selection ends a guided story and opens its inspector.
@@ -95,12 +116,14 @@ $('mac-scene').querySelectorAll('[data-part]').forEach(element => {
     }
   });
 });
-$('component-rail').querySelectorAll('[data-select]').forEach(button => button.addEventListener('click', () => activatePart(button.dataset.select)));
+$('component-rail').addEventListener('click', event => { const button = event.target.closest('[data-select]'); if (button) activatePart(button.dataset.select); });
 $('part-select').addEventListener('change', event => activatePart(event.target.value));
 
 function setOpen(open) {
   isOpen = open;
   $('mac-scene').classList.toggle('is-open', open);
+  machine3D?.setExplode(open ? 1 : 0);
+  if (machine3D) { machine3D.setView('isometric'); $('assembly-range').value = open ? 100 : 0; $('assembly-value').textContent = open ? '100%' : '0%'; }
   $('case-open').setAttribute('aria-pressed', String(open));
   $('case-closed').setAttribute('aria-pressed', String(!open));
   $('mac-scene').querySelector('svg').setAttribute('viewBox', '0 0 900 690');
@@ -111,6 +134,7 @@ $('case-open').addEventListener('click', () => setOpen(true));
 $('case-closed').addEventListener('click', () => setOpen(false));
 $('labels-toggle').addEventListener('click', () => {
   const hidden = $('mac-scene').classList.toggle('hide-labels');
+  machine3D?.setLabels(!hidden);
   $('labels-toggle').setAttribute('aria-pressed', String(!hidden));
   $('labels-toggle').querySelector('span').textContent = hidden ? 'off' : 'on';
 });
@@ -124,14 +148,47 @@ function drawScreen() {
   for (const id of ['mac-screen', 'mac-screen-open']) {
     const canvas = $(id);
     if (!canvas) continue;
-    if (screenOn) drawFramebuffer(canvas, frame);
+    if (screenOn) {
+      drawFramebuffer(canvas, frame);
+      if (cursor.visible) {
+        const context = canvas.getContext('2d'); context.save(); context.translate(cursor.x, cursor.y);
+        context.beginPath(); context.moveTo(0,0); context.lineTo(0,17); context.lineTo(4,13); context.lineTo(8,21); context.lineTo(11,20); context.lineTo(7,12); context.lineTo(13,12); context.closePath();
+        context.fillStyle = cursor.pressed ? '#fff' : '#111'; context.strokeStyle = cursor.pressed ? '#111' : '#fff'; context.lineWidth = 2; context.fill(); context.stroke(); context.restore();
+      }
+    }
     else {
       const context = canvas.getContext('2d');
       context.fillStyle = '#18201d'; context.fillRect(0, 0, canvas.width, canvas.height);
     }
   }
+  drawPresentationScreen();
+  machine3D?.refreshScreen();
+}
+function drawPresentationScreen() {
+  const original = generation.id === 'macintosh';
+  const width = original ? 512 : generation.id === 'imac-g3' ? 1024 : 1600;
+  const height = original ? 342 : generation.id === 'imac-g3' ? 768 : 900;
+  if (presentationScreen.width !== width) { presentationScreen.width = width; presentationScreen.height = height; }
+  const context = presentationScreen.getContext('2d');
+  if (original) { context.drawImage($('mac-screen'),0,0); return; }
+  if (!screenOn) { context.fillStyle = '#172221'; context.fillRect(0,0,width,height); return; }
+  const gradient = context.createLinearGradient(0,0,width,height);
+  gradient.addColorStop(0, generation.id === 'imac-g3' ? '#298c8c' : '#174a91');
+  gradient.addColorStop(1, generation.id === 'imac-g3' ? '#a8d9c3' : '#71c6dd');
+  context.fillStyle = gradient; context.fillRect(0,0,width,height);
+  context.fillStyle = '#ffffff20'; context.beginPath(); context.arc(width*.85,height*.82,width*.48,0,Math.PI*2); context.fill();
+  context.fillStyle = '#f5f4eccf'; context.fillRect(0,0,width,34);
+  context.fillStyle = '#243e48'; context.font = '16px monospace'; context.fillText('Architecture Lab   File   Explore   Help',22,23);
+  const w = Math.min(820,width*.77), h = w*342/512, x = (width-w)/2, y = (height-h)/2+6;
+  context.fillStyle = '#15344955'; context.fillRect(x+9,y+8,w+16,h+55);
+  context.fillStyle = '#f2f1e8'; context.fillRect(x-8,y-35,w+16,h+48);
+  context.fillStyle = '#334b56'; context.font = '17px monospace'; context.fillText('Bitmap study — original 1-bit artwork',x+12,y-12);
+  context.drawImage($('mac-screen'),x,y,w,h);
+  context.fillStyle = '#ffffffcf'; context.font = '18px monospace'; context.textAlign='center';
+  context.fillText(generation.name+' · '+generation.year,width/2,height-27); context.textAlign='left';
 }
 function zoomPart() {
+  if (machine3D) { machine3D.focus(selected); return; }
   const svg = $('mac-scene').querySelector('svg');
   const matches = [...svg.querySelectorAll(`[data-part="${selected}"]`)];
   const element = (isOpen ? matches : matches.filter(candidate => !candidate.closest('.mac-crt,.mac-drive,.mac-logic,.mac-analog')))[0];
@@ -148,35 +205,40 @@ function zoomPart() {
 }
 $('zoom-part').addEventListener('click', zoomPart);
 $('zoom-reset').addEventListener('click', () => {
+  machine3D?.setView('isometric');
   $('mac-scene').querySelector('svg').setAttribute('viewBox', '0 0 900 690');
   if (mode === 'signals') renderStory();
 });
 function stop() { clearInterval(timer); timer = null; }
 function setMode(next) {
-  if (!['explore', 'signals', 'pixels'].includes(next)) return;
+  if (!['explore', 'operate', 'signals', 'pixels'].includes(next)) return;
+  if (next === 'pixels' && generation.id !== 'macintosh') chooseGeneration('macintosh');
   stop(); mode = next;
   $('case-closed').disabled = mode === 'signals';
   document.querySelectorAll('[data-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
   $('signal-story').hidden = mode !== 'signals';
+  $('machine-activities').hidden = mode !== 'operate';
   $('pixel-lab').hidden = mode !== 'pixels';
   if ($('component-inspector')) $('component-inspector').hidden = mode !== 'explore';
   if ($('exhibit-body')) $('exhibit-body').hidden = mode === 'pixels';
   $('component-rail').hidden = mode === 'pixels';
-  $('mode-note').textContent = { explore: 'SELECT A PART TO LOOK INSIDE', signals: 'FOLLOW THE WORK, ONE STEP AT A TIME', pixels: 'EDIT MEMORY. SEE THE PICTURE CHANGE.' }[mode];
-  $('scene-caption').textContent = { explore: 'Select a component to inspect it. Open the case to reveal the architecture.', signals: 'Highlighted parts work together in this step. Select a part to return to Explore.', pixels: 'A 512 × 342 bitmap in the Macintosh’s shared RAM.' }[mode];
+  $('mode-note').textContent = { explore: 'SELECT A PART TO LOOK INSIDE', operate: 'REAL INPUT. VISIBLE RESULTS.', signals: 'FOLLOW THE WORK, ONE STEP AT A TIME', pixels: 'EDIT MEMORY. SEE THE PICTURE CHANGE.' }[mode];
+  $('scene-caption').textContent = { explore: 'Drag to rotate · scroll to zoom · select a component to inspect it.', operate: 'Try the input and storage experiments. Watch their signals and the live screen.', signals: 'Highlighted parts work together in this step. Select a part to return to Explore.', pixels: 'A 512 × 342 bitmap in the Macintosh’s shared RAM.' }[mode];
   clearActivity();
+  if (mode === 'operate') { setOpen(false); machine3D?.setView('front'); machineActivities?.activate('mouse'); }
   if (mode === 'signals') { setOpen(true); renderStory({ restore: false }); }
   if (mode === 'pixels') { selectPart('display'); renderPatch(); }
 }
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => setMode(button.dataset.mode)));
 function showExhibit() { $('explore').scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'start' }); }
 $('quick-pixels')?.addEventListener('click', () => { setMode('pixels'); showExhibit(); });
-$('quick-signals')?.addEventListener('click', () => { startJourney('poweron'); showExhibit(); });
+$('quick-operate')?.addEventListener('click', () => { setMode('operate'); showExhibit(); });
 function startJourney(id) {
   journey = JOURNEYS.find(candidate => candidate.id === id) || JOURNEYS[0];
   step = 0; setMode('signals');
 }
 function clearActivity() {
+  machine3D?.setSignals([]);
   document.querySelectorAll('[data-part]').forEach(element => element.classList.remove('path-active'));
   $('mac-scene').querySelector('.signal-overlay')?.remove();
 }
@@ -204,6 +266,7 @@ function renderStory({ restore = true } = {}) {
   clearActivity();
   current.active.forEach(id => $('mac-scene').querySelectorAll(`[data-part="${id}"]`).forEach(element => element.classList.add('path-active')));
   selectPart(current.part, { updateHash: false, markVisited: false });
+  if (machine3D) { machine3D.setSignals(current.links); restoreFocus(host, focused); return; }
   const svg = $('mac-scene').querySelector('svg');
   const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   overlay.setAttribute('class', 'signal-overlay'); overlay.setAttribute('aria-hidden', 'true');
@@ -340,7 +403,10 @@ $('pixel-undo')?.addEventListener('click', () => {
   drawScreen(); updateUndo(); setEditStatus(`Undid the last bitmap change.${edits.length ? ` ${edits.length} earlier ${edits.length === 1 ? 'change' : 'changes'} can still be undone.` : ''}`);
 });
 window.addEventListener('hashchange', () => {
-  const id = location.hash.slice(1);
+  const fragments = location.hash.slice(1).split('/');
+  const id = fragments.at(-1);
+  const destination = fragments.length > 1 ? GENERATIONS.find(item => item.id === fragments[0]) : GENERATIONS[0].parts.some(part => part.id === id) ? GENERATIONS[0] : null;
+  if (destination && generation.id !== destination.id) chooseGeneration(destination.id, { updateHash: false });
   if (PARTS.some(part => part.id === id)) activatePart(id, { updateHash: false });
 });
 function pauseForBackground() {
@@ -349,12 +415,92 @@ function pauseForBackground() {
   if (mode === 'signals') renderStory({ restore: false });
 }
 window.addEventListener('blur', pauseForBackground);
-window.addEventListener('pagehide', stop);
+window.addEventListener('pagehide', () => { stop(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseForBackground(); });
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (mode === 'signals') renderStory(); }, 150);
 });
+function mountMachine() {
+  machine3D?.dispose(); machine3D = null;
+  machineActivities?.destroy(); machineActivities = null;
+  $('mac-scene').querySelector('svg').removeAttribute('hidden');
+  delete $('mac-scene').dataset.renderer;
+  $('mac-scene').querySelector('.model-fallback')?.remove();
+  drawPresentationScreen();
+  try {
+  machine3D = createMacintoshRenderer($('mac-scene'), {
+    screenCanvas: presentationScreen, generation: generation.id,
+    onSelect: id => activatePart(id),
+    onStatus: message => { $('scene-caption').textContent = message; }
+  });
+  $('mac-scene').querySelector('svg').setAttribute('hidden', '');
+  $('mac-scene').dataset.renderer = 'webgl';
+  $('assembly-control').hidden = false;
+  $('camera-toolbar').hidden = false;
+  $('renderer-status').textContent = 'INTERACTIVE 3D · ILLUSTRATIVE MODEL';
+  $('scene-caption').textContent = 'Drag to rotate. Scroll to zoom. Click a part to discover it.';
+  machine3D.setLabels($('labels-toggle').getAttribute('aria-pressed') === 'true');
+} catch (error) {
+  $('mac-scene').querySelector('.machine-viewport')?.remove();
+  $('renderer-status').textContent = 'ILLUSTRATED VIEW';
+  $('assembly-control').hidden = true; $('camera-toolbar').hidden = true;
+  $('scene-caption').textContent = '3D is unavailable in this browser. Component details and lessons remain interactive.';
+  if (generation.id !== 'macintosh') { $('mac-scene').querySelector('svg').setAttribute('hidden',''); const message = document.createElement('p'); message.className='model-fallback'; message.textContent = generation.name + ': enable WebGL 2 to explore the 3D model. You can still select its parts and follow its architecture below.'; $('mac-scene').append(message); }
+}
+machineActivities = initMachineActivities($('machine-activities'), {
+  frame, onEdit: recordEdit, generation: generation.id,
+  onActivity: event => {
+    if (event.type === 'focus') { selectPart(event.part, { updateHash: false, markVisited: mode === 'operate' }); return; }
+    if (event.type === 'mouse') { cursor = event; drawScreen(); }
+    machine3D?.activity(event);
+  }
+});
+}
+function chooseGeneration(id, { updateHash = true } = {}) {
+  const next = GENERATIONS.find(item => item.id === id); if (!next) return;
+  stop(); generation = next; PARTS = generation.parts; JOURNEYS = generation.journeys; journey = JOURNEYS[0]; step = 0;
+  visited.clear(); selected = 'display'; cursor.visible = false;
+  populateParts(); updateGenerationUI(); mountMachine(); setMode('explore'); setOpen(false); selectPart('display',{updateHash}); drawScreen();
+  $('xray-toggle').setAttribute('aria-pressed','false'); $('rotate-toggle').setAttribute('aria-pressed','false');
+}
+function updateGenerationUI() {
+  document.querySelectorAll('[data-generation]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.generation === generation.id)));
+  $('generation-description').textContent = generation.description;
+  document.querySelector('.machine-name').textContent = generation.name + ' — a look inside';
+  document.querySelector('.edition-badge').textContent = generation.year;
+  document.querySelector('.spec-intro').textContent = generation.name;
+  const specifications = document.querySelectorAll('.hero-specs>div');
+  [generation.processor,generation.memory,generation.display].forEach((value,index) => { specifications[index].querySelector('strong').textContent=value; });
+  specifications[0].querySelector('span:last-child').textContent = 'Processor'; specifications[1].querySelector('span:last-child').textContent = 'Main memory'; specifications[2].querySelector('span:last-child').textContent = 'Display';
+  $('generation-note').textContent = generation.tagline;
+  $('machine-description').textContent = generation.description;
+  $('generation-source').href = generation.source;
+  document.querySelector('.hero-specs').setAttribute('aria-label',generation.name+' specifications');
+  $('mac-scene').setAttribute('aria-label','Interactive '+generation.name+' architecture');
+  document.querySelector('[data-mode=pixels]').innerHTML = '<span>04</span> '+(generation.id === 'macintosh' ? 'Make a picture' : '1984 pixel lab');
+}
+document.querySelectorAll('[data-generation]').forEach(button => button.addEventListener('click',()=>chooseGeneration(button.dataset.generation)));
+$('assembly-range').addEventListener('input', event => {
+  const value = Number(event.target.value); isOpen = value > 0;
+  machine3D?.setExplode(value / 100, true);
+  $('assembly-value').textContent = `${value}%`;
+  $('case-open').setAttribute('aria-pressed', String(value === 100));
+  $('case-closed').setAttribute('aria-pressed', String(value === 0));
+});
+$('assembly-range').addEventListener('change', () => machine3D?.setView('isometric'));
+$('camera-toolbar').querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
+  if (button.dataset.view === 'board' && Number($('assembly-range').value) < 70) setOpen(true);
+  machine3D?.setView(button.dataset.view);
+}));
+for (const [id, method] of [['xray-toggle','setXray'],['rotate-toggle','setRotate']]) $(id).addEventListener('click', () => {
+  const active = $(id).getAttribute('aria-pressed') !== 'true'; $(id).setAttribute('aria-pressed', String(active)); machine3D?.[method](active);
+});
+$('zoom-in').addEventListener('click', () => machine3D?.zoom(.8));
+$('zoom-out').addEventListener('click', () => machine3D?.zoom(1.25));
+updateGenerationUI();
+mountMachine();
+setOpen(false);
 selectPart(selected, { updateHash: false });
 drawScreen(); renderPatch();
 setEditStatus('Click the screen to choose a region. Click a magnified square to change its bit.');

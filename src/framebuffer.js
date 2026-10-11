@@ -110,17 +110,46 @@ const FONT = {
   8: [14, 17, 17, 14, 17, 17, 14], 9: [14, 17, 17, 15, 1, 1, 14],
   '.': [0, 0, 0, 0, 0, 12, 12], ':': [0, 12, 12, 0, 12, 12, 0],
   '-': [0, 0, 0, 31, 0, 0, 0], '/': [1, 1, 2, 4, 8, 16, 16],
+  ' ': [0, 0, 0, 0, 0, 0, 0], '!': [4, 4, 4, 4, 4, 0, 4],
+  '"': [10, 10, 10, 0, 0, 0, 0], '#': [10, 10, 31, 10, 31, 10, 10],
+  '$': [4, 15, 20, 14, 5, 30, 4], '%': [24, 25, 2, 4, 8, 19, 3],
+  '&': [12, 18, 20, 8, 21, 18, 13], "'": [4, 4, 8, 0, 0, 0, 0],
+  '(': [2, 4, 8, 8, 8, 4, 2], ')': [8, 4, 2, 2, 2, 4, 8],
+  '*': [0, 21, 14, 31, 14, 21, 0], '+': [0, 4, 4, 31, 4, 4, 0],
+  ',': [0, 0, 0, 0, 0, 4, 8], ';': [0, 4, 4, 0, 0, 4, 8],
+  '<': [1, 2, 4, 8, 4, 2, 1], '=': [0, 0, 31, 0, 31, 0, 0],
+  '>': [16, 8, 4, 2, 4, 8, 16], '?': [14, 17, 1, 2, 4, 0, 4],
+  '@': [14, 17, 23, 21, 23, 16, 14], '[': [14, 8, 8, 8, 8, 8, 14],
+  '\\': [16, 16, 8, 4, 2, 1, 1], ']': [14, 2, 2, 2, 2, 2, 14],
+  '^': [4, 10, 17, 0, 0, 0, 0], '_': [0, 0, 0, 0, 0, 0, 31],
+  '`': [8, 4, 0, 0, 0, 0, 0], '{': [3, 4, 4, 8, 4, 4, 3],
+  '|': [4, 4, 4, 4, 4, 4, 4], '}': [24, 4, 4, 2, 4, 4, 24],
+  '~': [0, 0, 9, 22, 0, 0, 0],
 };
 
-function text(frame, message, x, y, scale = 1) {
+/**
+ * Draw original 5 × 7 block glyphs, six pixels apart, clipped to the screen.
+ * Printable ASCII only; lower-case letters use the corresponding capitals.
+ * Only black glyph pixels are written. Clear a region first to replace text.
+ */
+export function drawText(frame, message, x, y, scale = 1) {
+  requireFrame(frame);
+  if (typeof message !== 'string') throw new TypeError('Text must be a string.');
+  if (/[^\x20-\x7E]/.test(message)) throw new RangeError('Text must contain only printable ASCII characters.');
+  for (const [name, value] of Object.entries({ x, y, scale })) {
+    if (!Number.isSafeInteger(value)) throw new RangeError(`${name} must be a safe integer.`);
+  }
+  if (scale < 1) throw new RangeError('Text scale must be positive.');
   for (let index = 0; index < message.length; index++) {
     const glyph = FONT[message[index].toUpperCase()];
-    if (!glyph) continue;
     for (let row = 0; row < 7; row++) for (let col = 0; col < 5; col++) {
       if (glyph[row] & (1 << (4 - col))) fillRect(frame, x + (index * 6 + col) * scale, y + row * scale, scale, scale);
     }
   }
+  return frame;
 }
+
+const text = drawText;
 
 function desktop(frame) {
   // Dither is the same one-bit data as text, rather than a separate gray color.

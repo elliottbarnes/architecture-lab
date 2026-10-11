@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { WIDTH, HEIGHT, ROW_BYTES, FRAME_BYTES, createFramebuffer, byteLocation, getPixel, setPixel, togglePixel, fillRect, fillPattern, drawFramebuffer } from '../src/framebuffer.js';
+import { WIDTH, HEIGHT, ROW_BYTES, FRAME_BYTES, createFramebuffer, byteLocation, getPixel, setPixel, togglePixel, fillRect, fillPattern, drawText, drawFramebuffer } from '../src/framebuffer.js';
 
 test('original Macintosh screen has 175104 pixels stored in 21888 bytes', () => {
   assert.equal(WIDTH, 512); assert.equal(HEIGHT, 342); assert.equal(ROW_BYTES, 64); assert.equal(FRAME_BYTES, 21888);
@@ -91,6 +91,67 @@ test('presets deterministically overwrite an existing frame and remain distinct'
   assert.notDeepEqual(frames.get('hello'), frames.get('desktop'));
   assert.ok(frames.get('hello').some(byte => byte !== 0));
   assert.throws(() => fillPattern(createFramebuffer(), 'unknown'), RangeError);
+});
+
+test('block text writes readable glyph rows with spacing and folds lower case to capitals', () => {
+  const frame = createFramebuffer(), upper = createFramebuffer();
+  assert.equal(drawText(frame, 'hi!', 8, 2), frame);
+  drawText(upper, 'HI!', 8, 2);
+  assert.deepEqual(frame, upper);
+  // H has two stems and a crossbar; the sixth column separates glyphs.
+  assert.deepEqual(Array.from({ length: 6 }, (_, x) => getPixel(frame, x + 8, 2)), [1, 0, 0, 0, 1, 0]);
+  assert.deepEqual(Array.from({ length: 6 }, (_, x) => getPixel(frame, x + 8, 5)), [1, 1, 1, 1, 1, 0]);
+  assert.equal(getPixel(frame, 14, 2), 1);
+  assert.equal(getPixel(frame, 22, 2), 1);
+  assert.equal(getPixel(frame, 22, 7), 0);
+  assert.equal(getPixel(frame, 22, 8), 1);
+});
+
+test('text scales pixels and clips across edges without wrapping into adjacent rows', () => {
+  const frame = createFramebuffer();
+  drawText(frame, 'H', -2, -2, 2);
+  assert.equal(getPixel(frame, 0, 0), 0);
+  assert.equal(getPixel(frame, 6, 0), 1);
+  assert.equal(getPixel(frame, 7, 0), 1);
+  assert.equal(getPixel(frame, 8, 0), 0);
+  assert.equal(getPixel(frame, 0, 4), 1);
+  assert.equal(getPixel(frame, 5, 5), 1);
+  drawText(frame, 'H', 511, 341, 2);
+  assert.equal(frame[FRAME_BYTES - 1], 1);
+  assert.equal(getPixel(frame, 0, 341), 0);
+  const previous = frame.slice();
+  drawText(frame, 'OFF SCREEN', WIDTH, HEIGHT);
+  drawText(frame, '', 0, 0);
+  assert.deepEqual(frame, previous);
+});
+
+test('every printable ASCII character has an original glyph and spaces preserve existing pixels', () => {
+  for (let code = 33; code <= 126; code++) {
+    const frame = createFramebuffer();
+    drawText(frame, String.fromCharCode(code), 0, 0);
+    assert.ok(frame.some(byte => byte !== 0), `ASCII ${code} should not disappear`);
+  }
+  const frame = createFramebuffer(); frame[0] = 255;
+  const previous = frame.slice();
+  drawText(frame, ' ', 0, 0);
+  assert.deepEqual(frame, previous);
+});
+
+test('text rejects invalid input before changing any bytes and respects a shared RAM view', () => {
+  const ram = new Uint8Array(FRAME_BYTES + 16).fill(0xA5);
+  const frame = ram.subarray(8, FRAME_BYTES + 8);
+  const previous = frame.slice();
+  for (const message of ['OK\n', 'é', '🙂', '\x7F']) {
+    assert.throws(() => drawText(frame, message, 0, 0), RangeError);
+    assert.deepEqual(frame, previous);
+  }
+  for (const message of [null, 42, ['A']]) assert.throws(() => drawText(frame, message, 0, 0), TypeError);
+  for (const scale of [0, -1, 0.5, NaN, Infinity, '2']) assert.throws(() => drawText(frame, 'A', 0, 0, scale), RangeError);
+  for (const [x, y] of [[0.5, 0], [0, NaN], [Infinity, 0], [0, '2']]) assert.throws(() => drawText(frame, 'A', x, y), RangeError);
+  assert.throws(() => drawText(new Uint8Array(1), 'A', 0, 0), TypeError);
+  drawText(frame, 'H', 511, 341, 4);
+  assert.ok(ram.subarray(0, 8).every(byte => byte === 0xA5));
+  assert.ok(ram.subarray(FRAME_BYTES + 8).every(byte => byte === 0xA5));
 });
 
 function mockCanvas() {

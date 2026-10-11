@@ -3,8 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Inside the original Macintosh: a visual hardware cutaway, signal journeys, and an editable monochrome framebuffer.",
-  "scripts": {"test": "node --test tests/*.test.js", "build": "node scripts/build.mjs", "dev": "node scripts/serve.mjs"},
-  "engines": {"node": ">=22"},
-  "license": "MIT"
+  "description": "Forty years of Macintosh architecture: three interactive 3D models, guided signal journeys, and working bitmap experiments.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
 }
